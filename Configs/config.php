@@ -10,7 +10,10 @@ return [
     'mysql' => '',
 
     'route' => [
-        'map' => [],
+        'map' => [
+            '/' => \Apps\Http\Controllers\Controller::class . '@index',
+            'aa' => \Apps\Http\Controllers\Controller::class . '@aa'
+        ],
         'preg' => [
             "<controller:\w+>/<id:\d+>" => "<controller>/view",
             "<controller:\w+>/<action:\w+>" => "<controller>/<action>"

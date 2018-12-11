@@ -17,6 +17,11 @@ class Config
     protected $configs = [];
 
 
+    public function __construct($configs)
+    {
+        $this->set($configs);
+    }
+
     /**
      * 获取配置,支持.语法
      * @param string $key
