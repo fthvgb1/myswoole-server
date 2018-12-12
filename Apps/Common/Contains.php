@@ -168,9 +168,7 @@ class Contains
                 }
                 $param[$parameter->name] = $arg;
             } else {
-                if ($this->has($parameter->name)) {
-                    $param[$parameter->name] = $this->get($parameter->name);
-                } elseif ($parameter->isDefaultValueAvailable()) {
+                if ($parameter->isDefaultValueAvailable()) {
                     $param[$parameter->name] = $parameter->getDefaultValue();
                 } elseif (($class = $parameter->getClass()) && class_exists($class->name)) {
                     $param[$parameter->name] = $this->build($class->name);
