@@ -9,6 +9,7 @@
 namespace Apps\Http\Controllers;
 
 
+use Apps\Common\Contains;
 use Apps\Http\Models\Model;
 use Swoole\Http\Request;
 use Swoole\Http\Response;
@@ -22,7 +23,10 @@ class Controller
 
     public function aa(Model $model)
     {
+        $s = ob_start();
         print_r($model);
+        $f = ob_get_contents();
+        Contains::$app->response->end($f);
     }
 
 }

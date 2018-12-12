@@ -33,11 +33,13 @@ class Route
         self::$routes[$field] = $routes;
     }
 
-    public function __construct($map, $preg)
+    public function __construct($map, $regex)
     {
-
-        self::setRoutes('map', $map);
-        self::setRoutes('preg', $preg);
+        $keys = array_map(function ($item) {
+            return $route = trim($item, '/') ?: '/';
+        }, array_keys($map));
+        self::setRoutes('map', array_combine($keys, array_values($map)));
+        self::setRoutes('regex', $regex);
     }
 
 
@@ -49,7 +51,8 @@ class Route
     public function Analysis(Request $request)
     {
         $path_info = $request->server['path_info'];
-        $route = ltrim($path_info, '\\');
+        $route = ltrim($path_info, '\\/');
+        $route = $route ?: '/';
         if (isset(self::$routes['map'][$route])) {
             return self::$routes['map'][$route];
         }

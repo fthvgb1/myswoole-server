@@ -30,6 +30,8 @@ class Contains
 
     private $alias = [];
 
+    public static $app;
+
     /**
      * @param $name
      * @return \ReflectionClass
@@ -50,7 +52,7 @@ class Contains
 
     public function __construct()
     {
-        self::$contains['contains'] = $this;
+        self::$app = self::$contains['contains'] = $this;
     }
 
     public function setting($key, $single, $alias = '')
@@ -66,32 +68,20 @@ class Contains
      * @param $name
      * @return mixed|object
      * @throws \ErrorException
-     * @throws \ReflectionException
      */
     public function __get($name)
     {
         return $this->get($name);
     }
 
-    /**
-     * @param $name
-     * @param $value
-     * @return object
-     * @throws \ErrorException
-     * @throws \ReflectionException
-     */
-    public function __set($name, $value)
-    {
-        return $this->bindings($name, $value);
-    }
+
 
     /**
      * @param $name
-     * @param string $alias
      * @return mixed|object
      * @throws \ErrorException
      */
-    public function get($name, $alias = '')
+    public function get($name)
     {
         if (isset(static::$contains[$name])) {
             return static::$contains[$name];
@@ -151,20 +141,20 @@ class Contains
         if (!$constructor) {
             return $reflectionClass->newInstance();
         }
-        $param = $this->resolveParms($reflectionClass->getConstructor(), $params);
+        $param = $this->resolveParams($reflectionClass->getConstructor(), $params);
         return $reflectionClass->newInstanceArgs($param);
 
     }
 
 
     /**
-     * @param \ReflectionMethod $constructor
+     * @param \ReflectionFunctionAbstract $constructor
      * @param array $params
      * @return array
      * @throws \ErrorException
      * @throws \ReflectionException
      */
-    public function resolveParms(\ReflectionMethod $constructor, $params = [])
+    public function resolveParams(\ReflectionFunctionAbstract $constructor, $params = [])
     {
 
         $param = [];
@@ -178,15 +168,15 @@ class Contains
                 }
                 $param[$parameter->name] = $arg;
             } else {
-
                 if ($this->has($parameter->name)) {
                     $param[$parameter->name] = $this->get($parameter->name);
                 } elseif ($parameter->isDefaultValueAvailable()) {
                     $param[$parameter->name] = $parameter->getDefaultValue();
-                } elseif ($parameter->allowsNull()) {
-                    $param[$parameter->name] = null;
+                } elseif (($class = $parameter->getClass()) && class_exists($class->name)) {
+                    $param[$parameter->name] = $this->build($class->name);
                 } else {
-                    $param[$parameter->name] = $this->build($parameter->getClass());
+                    $param[$parameter->name] = null;
+
                 }
             }
         }

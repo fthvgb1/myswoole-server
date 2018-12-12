@@ -45,7 +45,6 @@ class Dispatch
 
             $this->setQQ($request, $response);
 
-
             $this->running();
 
             $this->response();
@@ -70,13 +69,21 @@ class Dispatch
         $this->contains->bindings(Middleware::class, $this->contains->config->get('middleware'), 'middleware');
     }
 
+
+    /**
+     * @return array|mixed
+     * @throws \ErrorException
+     * @throws \ReflectionException
+     * @throws \Exception
+     */
     public function running()
     {
         $action = $this->contains->route->Analysis($this->contains->request);
-        if (is_callable($action)) {
-            return call_user_func_array($action, [$this->contains->request, $this->contains->response]);
-        } elseif (is_array($action)) {
 
+        if ($action instanceof \Closure) {
+            return $this->closure($action);
+        } elseif (is_array($action)) {
+            return [];
         }
         $arr = explode('@', $action);
         if (class_exists($arr[0])) {
@@ -84,6 +91,20 @@ class Dispatch
         }
         throw new \ErrorException('page not find', 404);
     }
+
+    /**
+     * @param \Closure $closure
+     * @return mixed
+     * @throws \ErrorException
+     * @throws \ReflectionException
+     */
+    public function closure(\Closure $closure)
+    {
+        $function = new \ReflectionFunction($closure);
+        $params = $this->contains->resolveParams($function);
+        return call_user_func_array($closure, $params);
+    }
+
 
     /**
      * @param $class
@@ -97,7 +118,7 @@ class Dispatch
         $object = $this->contains->build($class);
         $reflectionClass = $this->contains->getReflect($class);
         $action = $reflectionClass->getMethod($method);
-        $params = $this->contains->resolveParms($action);
+        $params = $this->contains->resolveParams($action);
         return call_user_func_array([$object, $method], $params);
     }
 
