@@ -8,12 +8,20 @@
 
 namespace Apps\Common;
 
-use Swoole\Http\Request;
+use Exception;
+use Symfony\Component\HttpFoundation\Request;
 
-class Route
+class Route implements interfaces\Route
 {
 
-    static protected $routes = [];
+    protected static array $routes = [];
+
+    protected string $method = 'get';
+
+    protected static array $methods = [
+        'get', 'post', 'head', 'options', 'put', 'patch', 'delete'
+    ];
+
 
     /**
      * @return array
@@ -23,46 +31,74 @@ class Route
         return self::$routes;
     }
 
-
-    /**
-     * @param $field
-     * @param array $routes
-     */
-    public static function setRoutes($field, array $routes)
+    public function __construct($routes)
     {
-        self::$routes[$field] = $routes;
+        $this->init($routes);
     }
 
-    public function __construct($map, $regex)
+    public function init($routes)
     {
-        $keys = array_map(function ($item) {
-            return $route = trim($item, '/') ?: '/';
-        }, array_keys($map));
-        self::setRoutes('map', array_combine($keys, array_values($map)));
-        self::setRoutes('regex', $regex);
+        foreach ($routes as $k => $route) {
+            if (is_integer($k) && is_array($route)) {
+                foreach (self::$methods as $method) {
+                    $this->push($method, $route);
+                }
+            } else {
+                $methods = explode('@', $k);
+                $middles = [];
+                if (count($methods) > 1) {
+                    $middles = explode('#', $methods[1]);
+                }
+                foreach (explode(' ', $methods[0]) as $method) {
+                    $this->push($method, $route, $middles);
+                }
+            }
+        }
+    }
+
+    public function push($method, $arr = [], $middleWare = [])
+    {
+        foreach ($arr as $key => $item) {
+            $key = trim($key, '/') ?: '/';
+            self::$routes[$method][$key] = $item;
+            if ($middleWare) {
+                Middleware::add($method . '@' . $key, $middleWare);
+            }
+        }
+    }
+
+
+    public function getCurrentRoute(Request $request = null)
+    {
+        $url = explode('?', $request->getUri())[0];
+        $host = $request->getSchemeAndHttpHost();
+        $route = trim(str_replace($host, '', $url), '/');
+        return $route ?: '/';
     }
 
 
     /**
      * @param Request $request
-     * @return string|array
-     * @throws \Exception
+     * @return mixed
+     * @throws Exception
      */
-    public function Analysis(Request $request)
+    public function matchRoute($request = null)
     {
-        $path_info = $request->server['path_info'];
-        $route = ltrim($path_info, '\\/');
-        $route = $route ?: '/';
-        if (isset(self::$routes['map'][$route])) {
-            return self::$routes['map'][$route];
+        if (!isset($_SERVER['REQUEST_METHOD'])) {
+            $this->method = 'cli';
+        } else {
+            $this->method = strtolower($request->getMethod());
+        }
+        $route = $this->getCurrentRoute($request);
+
+        if (isset(self::$routes[$this->method][$route])) {
+            return self::$routes[$this->method][$route];
         }
 
-        foreach (self::$routes['preg'] as $r) {
-            if (preg_match("@{$r}@", $route, $matches) !== false) {
-                return $matches;
-            }
-        }
-        throw new \Exception('page not found', 404);
+        //todo 正则方式的路由
+
+        //todo 注解方式的路由
+        throw new Exception('page not found', 404);
     }
 
 }

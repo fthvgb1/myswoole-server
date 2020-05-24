@@ -29,6 +29,14 @@ class Contains
 {
     private static array $contains = [];
 
+    /**
+     * @return array
+     */
+    public static function getContains(): array
+    {
+        return self::$contains;
+    }
+
     private static array $reflects = [];
 
     private array $alias = [];
@@ -116,8 +124,9 @@ class Contains
         if (isset(static::$contains[$concrete])) {
             unset(static::$contains[$concrete]);
         }
-
-
+        if (is_callable($params)) {
+            $params = $params($this->config);
+        }
         $instance = $this->build($concrete, $params);
         return static::$contains[$concrete] = $instance;
 

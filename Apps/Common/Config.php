@@ -14,13 +14,28 @@ use Apps\Helpers\Arr;
 class Config
 {
 
-    protected $configs = [];
+    protected array $configs = [];
+    protected static array $env = [];
 
+    public static function getEnv($key, $default = ''): string
+    {
+        return isset(self::$env[$key]) ? self::$env[$key] : self::$env[$key] = $default;
+    }
+
+
+    public static function setEnv(): void
+    {
+        $path = ROOTPATH . '/.env';
+        if ($path && file_exists($path)) {
+            self::$env = parse_ini_file($path);
+        }
+    }
 
     public function __construct($configs)
     {
         $this->set($configs);
     }
+
 
     /**
      * 获取配置,支持.语法

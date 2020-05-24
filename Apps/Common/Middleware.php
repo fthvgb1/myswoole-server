@@ -11,5 +11,10 @@ namespace Apps\Common;
 
 class Middleware
 {
+    public static array $data = [];
 
+    public static function add($name, $value)
+    {
+        static::$data[$name][] = $value;
+    }
 }

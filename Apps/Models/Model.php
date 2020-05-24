@@ -6,10 +6,10 @@
  * Time: 上午1:33
  */
 
-namespace Apps\Http\Models;
+namespace Apps\Models;
 
 
-class Model
+class Model extends \Illuminate\Database\Eloquent\Model
 {
 
 }

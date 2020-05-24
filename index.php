@@ -7,10 +7,8 @@
  */
 
 include 'vendor/autoload.php';
-
-$configs = require 'Configs/config.php';
+$configs = require 'configs/config.php';
 $app = new \Apps\Common\Dispatch(['configs' => $configs]);
-
 
 $server = new swoole_http_server('0.0.0.0', '9999');
 $server->on('start', function (swoole_http_server $server) {

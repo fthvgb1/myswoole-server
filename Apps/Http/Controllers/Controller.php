@@ -9,24 +9,25 @@
 namespace Apps\Http\Controllers;
 
 
-use Apps\Common\Contains;
-use Apps\Http\Models\Model;
-use Swoole\Http\Request;
-use Swoole\Http\Response;
+use Apps\Common\Config;
+use Apps\Common\Request;
+use Apps\Models\Posts;
+use Illuminate\Database\Capsule\Manager as DB;
 
 class Controller
 {
-    public function index(Request $request, Response $response)
+    public function index(Config $config, DB $manager)
     {
-        $response->end('hello swoole');
+        $a = DB::table('posts')->select('*')->get();
+        Posts::find(1);
+        return 'hello hi ......';
     }
 
-    public function aa(Model $model)
+    public function aa(Request $request)
     {
-        $s = ob_start();
-        print_r($model);
-        $f = ob_get_contents();
-        Contains::$app->response->end($f);
+        $url = $request->getUri();
+        return 'want love ' . $url;
+        //$request->f
     }
 
 }

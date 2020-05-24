@@ -12,7 +12,8 @@ namespace Apps\Common\interfaces;
 interface Route
 {
 
-    public function Analysis();
+
+    public function matchRoute($request = null);
 
 
 }

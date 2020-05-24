@@ -9,8 +9,8 @@
 namespace Apps\Common;
 
 
-use Swoole\Http\Request;
-use Swoole\Http\Response;
+use ErrorException;
+use ReflectionException;
 
 /**
  * Class Dispatch
@@ -21,14 +21,15 @@ class Dispatch
     /**
      * @var  Contains $Contains
      */
-    public $contains;
+    protected Contains $contains;
 
+    protected string $response;
 
     /**
      * Dispatch constructor.
      * @param array $configs
-     * @throws \ErrorException
-     * @throws \ReflectionException
+     * @throws ErrorException
+     * @throws ReflectionException
      */
     public function __construct($configs = [])
     {
@@ -37,49 +38,72 @@ class Dispatch
         $this->contains->setting(self::class, $this, 'dispatch');
     }
 
-    public function run(Request $request, Response $response)
+    public function run()
     {
         try {
 
             $this->bootstrap();
 
-            $this->setQQ($request, $response);
+            $action = $this->parseRoute();
 
-            $this->running();
+            $this->response = $this->running($action);
 
             $this->response();
 
-        } catch (\ErrorException $exception) {
+        } catch (ErrorException $exception) {
 
             $re = $exception->getMessage() . PHP_EOL . $exception->getFile() . PHP_EOL .
                 $exception->getLine() . PHP_EOL;
-            $this->contains->response->end("<h1>$re</h1>");
+            $this->contains->response->setContent("<h1>$re</h1>")->sendContent();
         }
     }
 
     /**
-     * @throws \ErrorException
-     * @throws \ReflectionException
+     * @throws ErrorException
+     * @throws ReflectionException
      */
     public function bootstrap()
     {
+        $components = $this->contains->config->get('components');
+
+        foreach ($components as $name => $component) {
+
+            is_array($component) ? $this->contains->bindings($component[0], $component[1], $name) :
+                $this->contains->bindings($component, [], $name);
+            if (isset($component[2]) && is_callable($component[2])) {
+                $component[2]($this->contains->get($name));
+            }
+        }
         $routeHandle = $this->contains->config->get('route_handle');
-        //print_r($this->contains->config->get('route'));
-        $this->contains->bindings($routeHandle ? $routeHandle : Route::class, $this->contains->config->get('route'), 'route');
-        $this->contains->bindings(Middleware::class, $this->contains->config->get('middleware'), 'middleware');
+        $this->contains->bindings($routeHandle ? $routeHandle : Route::class, ['routes' => $this->contains->config->get('route')], 'route');
+        //$this->contains->bindings(Middleware::class, $this->contains->config->get('middleware'), 'middleware');
+        $this->contains->bindings(Request::class, [$_GET,
+            $_POST,
+            [],
+            $_COOKIE,
+            $_FILES,
+            $_SERVER], 'request');
+        $this->contains->bindings(Response::class, [], 'response');
+    }
+
+    /**
+     * @return mixed
+     * @throws \Exception
+     */
+    public function parseRoute()
+    {
+        return $this->contains->route->matchRoute($this->contains->request);
     }
 
 
     /**
+     * @param $action
      * @return array|mixed
-     * @throws \ErrorException
-     * @throws \ReflectionException
-     * @throws \Exception
+     * @throws ErrorException
+     * @throws ReflectionException
      */
-    public function running()
+    public function running($action)
     {
-        $action = $this->contains->route->Analysis($this->contains->request);
-
         if ($action instanceof \Closure) {
             return $this->closure($action);
         } elseif (is_array($action)) {
@@ -89,14 +113,14 @@ class Dispatch
         if (class_exists($arr[0])) {
             return $this->action($arr[0], $arr[1]);
         }
-        throw new \ErrorException('page not find', 404);
+        throw new ErrorException('page not find', 404);
     }
 
     /**
      * @param \Closure $closure
      * @return mixed
-     * @throws \ErrorException
-     * @throws \ReflectionException
+     * @throws ErrorException
+     * @throws ReflectionException
      */
     public function closure(\Closure $closure)
     {
@@ -110,8 +134,8 @@ class Dispatch
      * @param $class
      * @param $method
      * @return mixed
-     * @throws \ErrorException
-     * @throws \ReflectionException
+     * @throws ErrorException
+     * @throws ReflectionException
      */
     public function action($class, $method)
     {
@@ -123,15 +147,10 @@ class Dispatch
     }
 
 
-    public function setQQ(Request $request, Response $response)
-    {
-        $this->contains->setting(Request::class, $request, 'request');
-        $this->contains->setting(Response::class, $response, 'response');
-    }
-
     public function response()
     {
-
+        return $this->contains->response->response($this->response);
     }
+
 
 }
