@@ -9,8 +9,11 @@
 namespace Apps\Common;
 
 
-use Swoole\Http\Request;
-use Swoole\Http\Response;
+use Closure;
+use ErrorException;
+use ReflectionClass;
+use ReflectionException;
+use ReflectionFunctionAbstract;
 
 /**
  * Class Contains
@@ -24,17 +27,17 @@ use Swoole\Http\Response;
  */
 class Contains
 {
-    private static $contains = [];
+    private static array $contains = [];
 
-    private static $reflects = [];
+    private static array $reflects = [];
 
-    private $alias = [];
+    private array $alias = [];
 
-    public static $app;
+    public static Contains $app;
 
     /**
      * @param $name
-     * @return \ReflectionClass
+     * @return ReflectionClass
      */
     public function getReflect($name)
     {
@@ -43,9 +46,9 @@ class Contains
 
     /**
      * @param $name
-     * @param \ReflectionClass $reflects
+     * @param ReflectionClass $reflects
      */
-    public static function setReflects($name, \ReflectionClass $reflects)
+    public static function setReflects($name, ReflectionClass $reflects)
     {
         self::$reflects[$name] = $reflects;
     }
@@ -67,7 +70,7 @@ class Contains
     /**
      * @param $name
      * @return mixed|object
-     * @throws \ErrorException
+     * @throws ErrorException
      */
     public function __get($name)
     {
@@ -75,11 +78,10 @@ class Contains
     }
 
 
-
     /**
      * @param $name
      * @return mixed|object
-     * @throws \ErrorException
+     * @throws ErrorException
      */
     public function get($name)
     {
@@ -90,7 +92,7 @@ class Contains
             return static::$contains[$this->alias[$name]];
         }
 
-        throw new \ErrorException($name . ' not exists', 500);
+        throw new ErrorException($name . ' not exists', 500);
     }
 
     /**
@@ -98,16 +100,16 @@ class Contains
      * @param array $params
      * @param string $alias
      * @return object
-     * @throws \ReflectionException|\ErrorException
+     * @throws ReflectionException|ErrorException
      */
     public function bindings($concrete, $params = [], $alias = '')
     {
         if ($alias) {
             $this->alias[$alias] = $concrete;
         }
-        if (($concrete instanceof \Closure)) {
+        if (($concrete instanceof Closure)) {
             if (!$alias) {
-                throw new \ErrorException('closure must need alias');
+                throw new ErrorException('closure must need alias');
             }
             return static::$contains[$alias] = $concrete;
         }
@@ -126,8 +128,8 @@ class Contains
      * @param $class
      * @param array $params
      * @return object
-     * @throws \ErrorException
-     * @throws \ReflectionException
+     * @throws ErrorException
+     * @throws ReflectionException
      */
     public function build($class, $params = [])
     {
@@ -135,7 +137,7 @@ class Contains
             return $this->get($class);
         }
 
-        $reflectionClass = new \ReflectionClass($class);
+        $reflectionClass = new ReflectionClass($class);
         self::setReflects($class, $reflectionClass);
         $constructor = $reflectionClass->getConstructor();
         if (!$constructor) {
@@ -148,20 +150,20 @@ class Contains
 
 
     /**
-     * @param \ReflectionFunctionAbstract $constructor
+     * @param ReflectionFunctionAbstract $constructor
      * @param array $params
      * @return array
-     * @throws \ErrorException
-     * @throws \ReflectionException
+     * @throws ErrorException
+     * @throws ReflectionException
      */
-    public function resolveParams(\ReflectionFunctionAbstract $constructor, $params = [])
+    public function resolveParams(ReflectionFunctionAbstract $constructor, $params = [])
     {
 
         $param = [];
-        foreach ($constructor->getParameters() as $parameter) {
+        foreach ($constructor->getParameters() as $index => $parameter) {
 
-            if (isset($params[$parameter->name])) {
-                $arg = $params[$parameter->name];
+            if (isset($params[$parameter->name]) || isset($params[$index])) {
+                $arg = $params[$parameter->name] ?? $params[$index];
                 if (is_string($arg) && class_exists($arg)) {
                     $args = $params[$arg] ?? [];
                     $arg = $this->build($arg, $args);
