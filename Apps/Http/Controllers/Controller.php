@@ -16,10 +16,12 @@ use Illuminate\Database\Capsule\Manager as DB;
 
 class Controller
 {
-    public function index(Config $config, DB $manager)
+    public function index(Config $config)
     {
         $a = DB::table('posts')->select('*')->get();
-        Posts::find(1);
+        (new \Illuminate\Database\Query\Builder);
+        $a = Posts::find(1);
+        print_r($a);
         return 'hello hi ......';
     }
 
