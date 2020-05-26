@@ -34,7 +34,7 @@ return [
         'request' => [Request::class, [$_GET, $_POST, [], $_COOKIE, $_FILES, $_SERVER]],
         'response' => Response::class,
         'db' => [Manager::class, [], function (Manager $manager) {
-            $db = Contains::$app->get('config')->get('db');
+            $db = Contains::getApp()->get('config')->get('db');
             $manager->addConnection($db);
             $manager->setAsGlobal();
             $manager->bootEloquent();
@@ -48,13 +48,38 @@ return [
             '/favicon.ico' => function () {
                 return readfile(__DIR__ . '/../favicon.ico');
             },
-            "<controller:\w+>/<id:\d+>" => "<controller>/view",
-            "<controller:\w+>/<action:\w+>" => "<controller>/<action>"
         ],
         'get post@auth:user#aa:bb' => [
 
         ],
+        'route regex' => [
+            [
+                'method' => ['get', 'post'],
+                'middleWare' => [],
+                'rule' => function ($route) {
+                    if (preg_match('@^(?P<controller>\w+)/(?P<id>\d+)$@u', $route, $matches) > 0) {
+                        $id = $matches['id'];
+                        $controller = $matches['controller'];
+                        $model = call_user_func_array(['Apps\Models\\' . ucfirst($controller), 'find'], [$id]);
 
+                        return [['Apps\Http\Controllers\\' . ucfirst($controller), 'view'], [$model]];
+                    }
+                    return false;
+                }
+            ],
+            [
+                'method' => ['get', 'post'],
+                'middleWare' => [],
+                'rule' => function ($route) {
+                    if (preg_match('@^(?P<controller>\w+)/(?P<method>\w+)$@u', $route, $matches) > 0) {
+                        $controller = $matches['controller'];
+                        $method = $matches['method'];
+                        return [['Apps\Http\Controllers\\' . ucfirst($controller), $method], null];
+                    }
+                    return false;
+                }
+            ],
+        ]
 
     ]
 ];

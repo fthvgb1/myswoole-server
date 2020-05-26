@@ -25,7 +25,7 @@ class Config
 
     public static function setEnv(): void
     {
-        $path = ROOTPATH . '/.env';
+        $path = dirname(dirname(__DIR__)) . '/.env';
         if ($path && file_exists($path)) {
             self::$env = parse_ini_file($path);
         }
@@ -34,6 +34,9 @@ class Config
     public function __construct($configs)
     {
         $this->set($configs);
+        $this->set([
+            'ROOTPATH' => dirname(dirname(__DIR__))
+        ]);
     }
 
 

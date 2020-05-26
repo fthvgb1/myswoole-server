@@ -46,7 +46,10 @@ class Dispatch
 
             $action = $this->parseRoute();
 
-            $this->response = $this->running($action);
+            is_array($action) ? list($action, $params) = $action : $params = null;
+
+
+            $this->response = $this->running($action, $params);
 
             $this->response();
 
@@ -98,34 +101,36 @@ class Dispatch
 
     /**
      * @param $action
+     * @param $params
      * @return array|mixed
      * @throws ErrorException
      * @throws ReflectionException
      */
-    public function running($action)
+    public function running($action, $params)
     {
         if ($action instanceof \Closure) {
-            return $this->closure($action);
+            return $this->closure($action, $params);
         } elseif (is_array($action)) {
-            return [];
+            return $this->action($action[0], $action[1], $params);
         }
         $arr = explode('@', $action);
         if (class_exists($arr[0])) {
-            return $this->action($arr[0], $arr[1]);
+            return $this->action($arr[0], $arr[1], $params);
         }
         throw new ErrorException('page not find', 404);
     }
 
     /**
      * @param \Closure $closure
+     * @param $params
      * @return mixed
      * @throws ErrorException
      * @throws ReflectionException
      */
-    public function closure(\Closure $closure)
+    public function closure(\Closure $closure, $params)
     {
         $function = new \ReflectionFunction($closure);
-        $params = $this->contains->resolveParams($function);
+        $params = $params ?: $this->contains->resolveParams($function);
         return call_user_func_array($closure, $params);
     }
 
@@ -133,16 +138,17 @@ class Dispatch
     /**
      * @param $class
      * @param $method
+     * @param $params
      * @return mixed
      * @throws ErrorException
      * @throws ReflectionException
      */
-    public function action($class, $method)
+    public function action($class, $method, $params)
     {
         $object = $this->contains->build($class);
         $reflectionClass = $this->contains->getReflect($class);
         $action = $reflectionClass->getMethod($method);
-        $params = $this->contains->resolveParams($action);
+        $params = $params ?: $this->contains->resolveParams($action);
         return call_user_func_array([$object, $method], $params);
     }
 

@@ -11,6 +11,7 @@ namespace Apps\Common;
 
 use Closure;
 use ErrorException;
+use Psr\Container\ContainerInterface;
 use ReflectionClass;
 use ReflectionException;
 use ReflectionFunctionAbstract;
@@ -25,23 +26,33 @@ use ReflectionFunctionAbstract;
  * @property Request request
  * @package Apps\Common
  */
-class Contains
+class Contains implements ContainerInterface
 {
     private static array $contains = [];
 
-    /**
-     * @return array
-     */
-    public static function getContains(): array
-    {
-        return self::$contains;
-    }
 
     private static array $reflects = [];
 
     private array $alias = [];
 
-    public static Contains $app;
+    private static Contains $app;
+
+    /**
+     * @return Contains
+     */
+    public static function getApp(): Contains
+    {
+        return self::$app;
+    }
+
+    /**
+     * @param Contains $app
+     */
+    public static function setApp(Contains $app): void
+    {
+        self::$app = $app;
+    }
+
 
     /**
      * @param $name
@@ -50,6 +61,16 @@ class Contains
     public function getReflect($name)
     {
         return self::$reflects[$name];
+    }
+
+    /**
+     * @param $name
+     * @return mixed
+     * @throws ErrorException
+     */
+    public static function getInstance($name)
+    {
+        return self::getApp()->get($name);
     }
 
     /**
@@ -63,7 +84,7 @@ class Contains
 
     public function __construct()
     {
-        self::$app = self::$contains['contains'] = $this;
+        self::setApp(self::$contains['contains'] = $this);
     }
 
     public function setting($key, $single, $alias = '')

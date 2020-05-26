@@ -18,6 +18,8 @@ class Route implements interfaces\Route
 
     protected string $method = 'get';
 
+    protected static array $regex = [];
+
     protected static array $methods = [
         'get', 'post', 'head', 'options', 'put', 'patch', 'delete'
     ];
@@ -36,8 +38,15 @@ class Route implements interfaces\Route
         $this->init($routes);
     }
 
+
     public function init($routes)
     {
+
+        if (isset($routes['route regex'])) {
+            self::$regex = $routes['route regex'];
+            unset($routes['route regex']);
+        }
+
         foreach ($routes as $k => $route) {
             if (is_integer($k) && is_array($route)) {
                 foreach (self::$methods as $method) {
@@ -55,6 +64,7 @@ class Route implements interfaces\Route
             }
         }
     }
+
 
     public function push($method, $arr = [], $middleWare = [])
     {
@@ -95,7 +105,18 @@ class Route implements interfaces\Route
             return self::$routes[$this->method][$route];
         }
 
-        //todo 正则方式的路由
+
+        if (self::$regex) {
+            $method = strtolower($request->getMethod());
+            foreach (self::$regex as $regex) {
+                if (in_array($method, $regex['method']) && isset($regex['rule']) && is_callable($regex['rule'])) {
+                    $action = call_user_func($regex['rule'], $route);
+                    if ($action) {
+                        return $action;
+                    }
+                }
+            }
+        }
 
         //todo 注解方式的路由
         throw new Exception('page not found', 404);

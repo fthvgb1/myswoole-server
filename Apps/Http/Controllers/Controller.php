@@ -19,7 +19,7 @@ class Controller
     public function index(Config $config)
     {
         $a = DB::table('posts')->select('*')->get();
-        (new \Illuminate\Database\Query\Builder);
+        //(new \Illuminate\Database\Query\Builder);
         $a = Posts::find(1);
         print_r($a);
         return 'hello hi ......';
